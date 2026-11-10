@@ -2,7 +2,7 @@
 
 ## Threat model
 
-`trysac-agent-budget-guard` is a pure library without I/O. The main risks are:
+`agent-budget-guard` is a pure library without I/O. The main risks are:
 
 - **Supply chain**: a compromised dependency or CI action. Mitigation: no runtime dependencies,
   Dependabot weekly updates, actions pinned to major versions, minimal workflow permissions.
