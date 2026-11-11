@@ -9,4 +9,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added framework-neutral budget guard for agent runs with caps on steps, tokens, tool calls per tool and elapsed time, nested child budgets, terminal exceeded state, warnings and thread safety.
 - Initial project structure from the factory utility template.

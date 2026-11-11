@@ -2,7 +2,24 @@
 
 ## Purpose
 
-`trysac-agent-budget-guard` is a small, dependency-free Python library: Framework-neutral budget guard for agent runs: caps on steps, tokens, tool calls per tool and elapsed time with an injected clock, nested sub-budgets and terminal exceeded state
+`agent-budget-guard` is a small, dependency-free Python library: Framework-neutral budget guard for agent runs: caps on steps, tokens, tool calls per tool and elapsed time with an injected clock, nested sub-budgets and terminal exceeded state
+
+## Example
+
+```python
+from agent_budget_guard import BudgetExceeded, BudgetGuard, Limits
+
+guard = BudgetGuard(Limits(max_steps=2, max_tokens=1000), warn_at=0.8, on_event=print)
+guard.charge_step()
+guard.charge_tokens(400, 100)
+child = guard.child(Limits(max_tokens=200))
+child.charge_tokens(150, 0)
+try:
+    guard.charge_step()
+    guard.charge_step()
+except BudgetExceeded as exc:
+    assert exc.code == "steps" and exc.scope == "self"
+```
 
 ## Shape
 

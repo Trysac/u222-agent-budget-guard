@@ -1,22 +1,25 @@
 # agent-budget-guard
 
-[![PyPI version](https://img.shields.io/pypi/v/trysac-agent-budget-guard)](https://pypi.org/project/trysac-agent-budget-guard/)
-[![License: MIT](https://img.shields.io/pypi/l/trysac-agent-budget-guard)](LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/agent-budget-guard)](https://pypi.org/project/agent-budget-guard/)
+[![License: MIT](https://img.shields.io/pypi/l/agent-budget-guard)](LICENSE)
 [![CI](https://github.com/Trysac/u222-agent-budget-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/Trysac/u222-agent-budget-guard/actions/workflows/ci.yml)
 
 Framework-neutral budget guard for agent runs: caps on steps, tokens, tool calls per tool and elapsed time with an injected clock, nested sub-budgets and terminal exceeded state
 
 ## Problem
 
-Describe in two or three sentences the concrete problem this utility solves, who hits it, and what
-they do today without it. Replace this paragraph when the first real feature lands.
+Agent loops retry, fan out into sub-agents and run unsupervised, and without hard caps a single bad
+run burns thousands of steps, millions of tokens or hours of wall time. Each framework ships its own
+partial limits, and sub-agents usually escape the parent budget entirely. This library gives any loop
+one small guard object with exact counting, an injected monotonic clock, child budgets that draw from
+the parent and a terminal exceeded state; cost in currency stays outside (convert tokens yourself).
 
 ## Install
 
 ```sh
-pip install trysac-agent-budget-guard
+pip install agent-budget-guard
 # or
-uv add trysac-agent-budget-guard
+uv add agent-budget-guard
 ```
 
 Requires Python 3.10 or newer. No runtime dependencies.
@@ -24,16 +27,29 @@ Requires Python 3.10 or newer. No runtime dependencies.
 ## Usage
 
 ```python
-import agent_budget_guard
+from agent_budget_guard import BudgetExceeded, BudgetGuard, Limits
 
-# normalize() trims surrounding whitespace and lower-cases the text.
-print(agent_budget_guard.normalize("  Hello World "))  # -> "hello world"
+guard = BudgetGuard(
+    Limits(max_steps=2, max_tokens=1000),
+    warn_at=0.8,
+    on_event=print,  # warning/exceeded dicts; never prompts or tool arguments
+)
 
-# Blank input is rejected explicitly instead of returning an empty string.
+guard.charge_step()
+guard.charge_tokens(400, 100)
+print(guard.usage())  # Usage(steps=1, tokens=500, ...)
+print(guard.remaining())  # {'steps': 1, 'tokens': 500, 'tool_calls': None, 'time': None}
+
+# A child has its own limits but every charge is also recorded on the parent.
+child = guard.child(Limits(max_tokens=200))
+child.charge_tokens(150, 0)
+
 try:
-    agent_budget_guard.normalize("   ")
-except ValueError as exc:
-    print(f"rejected: {exc}")
+    guard.charge_step()  # second step, within the limit
+    guard.charge_step()  # third step, over the limit
+except BudgetExceeded as exc:
+    print(exc.code, exc.scope)  # -> steps self
+    print(exc)  # -> step budget exceeded: 3 > 2
 ```
 
 ## Documentation
